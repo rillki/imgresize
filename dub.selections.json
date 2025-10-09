@@ -1,0 +1,9 @@
+{
+	"fileVersion": 1,
+	"versions": {
+		"gamut": "3.3.3",
+		"intel-intrinsics": "1.12.1",
+		"miniz": "0.0.2",
+		"stb_image_resize2-d": "1.0.1"
+	}
+}

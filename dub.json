@@ -1,0 +1,14 @@
+{
+	"authors": [
+		"rillki"
+	],
+	"copyright": "Copyright © 2025, rillki",
+	"dependencies": {
+		"gamut": "~>3.3.3",
+		"stb_image_resize2-d": "~>1.0.1"
+	},
+	"description": "Image resize and conversion utility.",
+	"license": "MIT",
+	"name": "imgresize",
+	"targetPath": "bin"
+}

@@ -31,7 +31,8 @@ bool convertResizeSave(
     in string inPath,
     in string outPath,
     in ImageSize imageSize,
-    in ImageFormat format = ImageFormat.PNG)
+    in ImageFormat format = ImageFormat.PNG,
+    in bool removeAlpha = false)
 {
     // load image
     Image img;
@@ -79,6 +80,39 @@ bool convertResizeSave(
     {
         log("Failed to resize image:", inPath);
         return false;
+    }
+
+    // alpha channel settings
+    // Handle format-specific conversions
+    final switch (format)
+    {
+        // these formats don't support alpha - convert to RGB
+        case ImageFormat.JPEG:
+        case ImageFormat.SQZ:
+            outimg.convertTo(PixelType.rgb8);
+            break;
+    
+        // these support alpha - keep rgba8 (unless disabled)
+        case ImageFormat.PNG:
+        case ImageFormat.TGA:
+        case ImageFormat.GIF:
+        case ImageFormat.QOI:
+        case ImageFormat.QOIX:
+        case ImageFormat.DDS:
+        case ImageFormat.BMP:
+            if (removeAlpha)
+            {
+                outimg.convertTo(PixelType.rgb8);
+            }
+            break;
+
+        // JPEG XL in Gamut has no alpha support
+        case ImageFormat.JXL:
+            outimg.convertTo(PixelType.rgb8);
+            break;
+
+        case ImageFormat.unknown:
+            break;
     }
     
     // save image
@@ -140,7 +174,8 @@ void main(string[] args)
     string inPath;
     string outPath;
     string sizeStr;
-    string formatStr = "png";
+    string formatStr;
+    bool removeAlpha = false;
     
     try
     {
@@ -148,16 +183,17 @@ void main(string[] args)
         auto helpInfo = getopt(
             args,
             config.required, "p|path",   "Path to input image.", &inPath,
-            "s|size",   "Target size or ratio (e.g. 256x256 or 0.8).", &sizeStr,
+            config.required, "f|format", "Output format (png, jpeg, bmp...).", &formatStr,
+            "s|size",   "Target size or ratio (e.g. 256x256 or 0.8). Defaults to original image size.", &sizeStr,
             "o|output", "Output image path. Defaults to 'path'.", &outPath,
-            "f|format", "Output format (png, jpeg, bmp...). Defaults to 'png'.", &formatStr,
+            "r|remove-alpha", "Remove alpha channel. Defaults to 'false'.", &removeAlpha,
         );
 
         // help
         if (helpInfo.helpWanted)
         {
             defaultGetoptPrinter(
-                "Usage: imgresize --path <file> --size <WxH> [--format <fmt> --output <file>]",
+                "Usage: imgresize --path <file> --format <fmt> [--size <WxH> --output <file>]",
                 helpInfo.options
             );
             return;
@@ -195,16 +231,17 @@ void main(string[] args)
     if (resizeNeeded(imageSize))
     {
         log("Resizing image:", inPath);
-        logf("Specified size: %s%s\n", isNumeric(sizeStr) ? "x" : "", sizeStr);        
+        logf("Specified size: %s%s\n", isNumeric(sizeStr) ? "x" : "", sizeStr);
     }
     else
     {
         log("Converting image:", inPath);
         log("Specified format:", formatStr);
     }
+    log("Remove alpha channel:", removeAlpha);
 
     // convert
-    immutable success = convertResizeSave(inPath, outPath, imageSize, format);
+    immutable success = convertResizeSave(inPath, outPath, imageSize, format, removeAlpha);
     if (!success) return;
     
     // log

@@ -12,7 +12,7 @@ A fast command-line image resizing and conversion tool written in D.
 ## Installation
 
 ### Prerequisites
-You need to install [D compiler](https://dlang.org/download.html) toolchain to build this project. Ensure you also install `dub` package manager. It comes with the compiler, but sometimes you may need to install it separately on Linux. 
+You need to install [D compiler](https://dlang.org/download.html) toolchain to build this project. Ensure you also have `dub` package manager installed on your system. It comes with the compiler, but sometimes you may need to install it separately on Linux. 
 
 ### Build from Source
 

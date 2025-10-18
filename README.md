@@ -46,6 +46,11 @@ Usage: imgresize --path <file> --format <fmt> [--size <WxH> --output <file>]
 imgresize --path photo.jpg --size 800x600 --format png
 ```
 
+#### Resize relative to one of the dimensions:
+```bash
+imgresize --path photo.jpg --size 800x --format png
+```
+
 #### Scale by factor:
 ```bash
 imgresize --path image.png --size 0.5 --format jpeg

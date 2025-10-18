@@ -221,7 +221,7 @@ void main(string[] args)
             args,
             config.required, "p|path",   "Path to input image.", &inPath,
             config.required, "f|format", "Output format (png, jpeg, bmp...).", &formatStr,
-            "s|size",   "Target size or ratio (e.g. 256x256 or 0.8). Defaults to original image size.", &sizeStr,
+            "s|size",   "Target or relative size, ratio (e.g. 256x256, 256x, 0.8). Defaults to original image size.", &sizeStr,
             "o|output", "Output image path. Defaults to 'path'.", &outPath,
             "r|remove-alpha", "Remove alpha channel. Defaults to 'false'.", &removeAlpha,
         );

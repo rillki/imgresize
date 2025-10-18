@@ -3,7 +3,9 @@ module app;
 import std.conv : to;
 import std.math : isNaN;
 import std.path : stripExtension;
-import std.string : toLower, split, isNumeric;
+import std.array : array;
+import std.string : toLower, split, isNumeric, indexOf, empty;
+import std.algorithm : filter, swap;
 import std.getopt : getopt, defaultGetoptPrinter, config;
 import gamut : Image, ImageFormat, PixelType, LOAD_RGB, LOAD_ALPHA, LOAD_8BIT, LOAD_NO_PREMUL;
 import stb_image_resize2;
@@ -45,6 +47,7 @@ bool convertResizeSave(
 
     // calculate target width and height
     int targetWidth, targetHeight;
+    immutable ratio = cast(float)img.width / cast(float)img.height;
     if (!imageSize.scale.isNaN)
     {
         targetWidth = (imageSize.scale * img.width).to!int;
@@ -52,8 +55,26 @@ bool convertResizeSave(
     }
     else if (imageSize.width && imageSize.height)
     {
+        if (ratio > 1)
+        {
+            targetWidth = imageSize.width;
+            targetHeight = imageSize.height;
+        }
+        else
+        {
+            targetWidth = imageSize.height;
+            targetHeight = imageSize.width;
+        }
+    }
+    else if (imageSize.width && !imageSize.height)
+    {
         targetWidth = imageSize.width;
-        targetHeight = imageSize.height;
+        targetHeight = cast(int)(imageSize.width / ratio); 
+    }
+    else if (!imageSize.width && imageSize.height)
+    {
+        targetWidth = cast(int)(imageSize.height * ratio);
+        targetHeight = imageSize.height; 
     }
     else
     {
@@ -140,26 +161,42 @@ ImageFormat parseFormat(string fmt)
         case "qoix": return ImageFormat.QOIX;
         case "dds":  return ImageFormat.DDS;
         case "sqz":  return ImageFormat.SQZ;
-        default:
-            throw new Exception("Unsupported format: " ~ fmt);
+        default: return ImageFormat.unknown;
     }
 }
 
 /// Parse image size (width, height, scale), e.g.:
-/// "256x256" → (256, 256, 0)
-/// "0.8" → (0, 0, 0.8)
+/// "256x256" → (256, 256,   0)
+/// "256x"    → (256,   0,   0)
+/// "x256"    → (  0, 255,   0)
+/// "0.8"     → (  0,   0, 0.8)
+/// Returns '-1' upon invalid input: → (-1,-1,-1)
 ImageSize parseSize(in string sizeStr)
 {
     // use default size if not provided
     if (!sizeStr.length) return ImageSize();
 
-    // try to parse: dimensions WIDTHxHEIGHT or scaling value
-    auto parts = split(sizeStr, "x");
-    if (parts.length != 2)
+    // try to parse a scaling value
+    if (sizeStr.isNumeric) return ImageSize(scale: sizeStr.to!float);
+
+    // check if valid dimensions are specified before parsing them
+    immutable xPos = sizeStr.indexOf('x');
+    if (xPos < 0) return ImageSize(-1, -1, -1);
+
+    // try to parse dimensions
+    auto parts = split(sizeStr, "x").filter!(x => !x.empty).array;
+    if (parts.length == 2) // WIDTHxHEIGHT
     {
-        return ImageSize(scale: sizeStr.to!float);
+        return ImageSize(parts[0].to!int, parts[1].to!int);
     }
-    return ImageSize(parts[0].to!int, parts[1].to!int);
+    else if (xPos == 0)    // xHEIGHT
+    {
+        return ImageSize(0, parts[0].to!int);
+    }
+    else                   // WIDTHx
+    {
+        return ImageSize(parts[0].to!int);
+    }
 }
 
 /// Check if resize needed
@@ -205,10 +242,22 @@ void main(string[] args)
         return;
     }
 
-    // parse values
+    // parse image size
     auto imageSize = parseSize(sizeStr);
+    if (imageSize.width < 0)
+    {
+        log("Invalid image dimensions specified:", sizeStr);
+        return;
+    }
+    
+    // parse format
     auto format = parseFormat(formatStr);
-
+    if (format == ImageFormat.unknown)
+    {
+        log("Unsupported format specified:", formatStr);
+        return;
+    }
+        
     // ask for user confirmation if imageSize.scale values are suspiciously small or big
     if (!imageSize.scale.isNaN && (imageSize.scale < 0.1 || imageSize.scale > 5))
     {
@@ -239,7 +288,7 @@ void main(string[] args)
         log("Specified format:", formatStr);
     }
     log("Remove alpha channel:", removeAlpha);
-
+    
     // convert
     immutable success = convertResizeSave(inPath, outPath, imageSize, format, removeAlpha);
     if (!success) return;
